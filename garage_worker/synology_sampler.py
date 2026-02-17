@@ -95,10 +95,32 @@ class SynologySampler:
     def now_iso(ts_int):
         return datetime.fromtimestamp(ts_int, ZoneInfo(DEFAULT_TIMEZONE)).isoformat()
 
+    def _check_response(self, response: dict, context: str = "") -> dict:
+        """Check API response and re-login if session expired, then retry."""
+        if not response.get("success"):
+            error_code = response.get("error", {}).get("code")
+            # Error codes 105/106/107 = session expired/invalid SID
+            if error_code in (105, 106, 107):
+                self._login()
+                return None  # Signal caller to retry
+            raise RuntimeError(f"Synology API error{' (' + context + ')' if context else ''}: {response.get('error', {})}")
+        return response
+
+    def _get_with_reauth(self, fetch_func, context: str = "") -> dict:
+        """Call a fetch function, re-authenticate and retry once if session expired."""
+        response = fetch_func()
+        checked = self._check_response(response, context)
+        if checked is None:
+            response = fetch_func()
+            checked = self._check_response(response, context)
+            if checked is None:
+                raise RuntimeError(f"Synology API still failing after re-login ({context})")
+        return checked
+
     def get_one_sample(self) -> dict:
         """Sample and return relevant information"""
-        util = self.get_utilization()
-        storage = self.get_storage_info()
+        util = self._get_with_reauth(self.get_utilization, "utilization")
+        storage = self._get_with_reauth(self.get_storage_info, "storage")
         t = util["data"]["time"]
 
         payload = {
