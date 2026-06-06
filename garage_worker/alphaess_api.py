@@ -287,7 +287,7 @@ class AlphaESSClient(AlphaESSAPI):
             print(f"PV Total Power:        {power_data.get('ppv', 0):>10.2f} W")
 
             # PV Details
-            pv_details = power_data.get('ppvDetailData', {})
+            pv_details = power_data.get('ppvDetail', {})
             if pv_details:
                 print(f"  - PV1:               {pv_details.get('ppv1', 0):>10.2f} W")
                 print(f"  - PV2:               {pv_details.get('ppv2', 0):>10.2f} W")
@@ -304,7 +304,7 @@ class AlphaESSClient(AlphaESSAPI):
             print(f"Grid Power:            {pgrid:>10.2f} W ({grid_status})")
 
             # Grid Details
-            grid_details = power_data.get('pgridDetailData', {})
+            grid_details = power_data.get('pgridDetail', {})
             if grid_details:
                 print(f"  - L1:                {grid_details.get('pmeterL1', 0):>10.2f} W")
                 print(f"  - L2:                {grid_details.get('pmeterL2', 0):>10.2f} W")
@@ -313,7 +313,7 @@ class AlphaESSClient(AlphaESSAPI):
             print(f"\nEV Charger Total:      {power_data.get('pev', 0):>10.2f} W")
 
             # EV Details
-            ev_details = power_data.get('pevDetailData', {})
+            ev_details = power_data.get('pevDetail', {})
             if ev_details:
                 print(f"  - EV1:               {ev_details.get('ev1Power', 0):>10.2f} W")
                 print(f"  - EV2:               {ev_details.get('ev2Power', 0):>10.2f} W")
@@ -467,11 +467,11 @@ class AlphaESSClient(AlphaESSAPI):
                 upload_time = record.get('uploadTime', 'N/A')
                 print(f"Record {idx} - {upload_time}")
                 print(f"  PV Power:            {record.get('ppv', 0):>10.2f} W")
-                print(f"  Battery Power:       {record.get('cobat', 0):>10.2f} W")
+                print(f"  Battery SOC:         {record.get('cbat', 0):>10.2f} %")
                 print(f"  Load:                {record.get('load', 0):>10.2f} W")
                 print(f"  Grid Charge:         {record.get('gridCharge', 0):>10.2f} W")
                 print(f"  Feed-in:             {record.get('feedIn', 0):>10.2f} W")
-                print(f"  Charging Pile:       {record.get('pChargingPile', 0):>10.2f} W")
+                print(f"  Charging Pile:       {record.get('pchargingPile', 0):>10.2f} W")
                 print()
 
             if max_records and len(power_data) > max_records:
@@ -551,7 +551,7 @@ class AlphaESSClient(AlphaESSAPI):
             result["grid_status"] = "zero"
 
         # Add PV details if available
-        pv_details = power_data.get('ppvDetailData', {})
+        pv_details = power_data.get('ppvDetail', {})
         if pv_details:
             result["pv_details"] = {
                 "pv1_w": pv_details.get('ppv1', 0),
@@ -561,7 +561,7 @@ class AlphaESSClient(AlphaESSAPI):
             }
 
         # Add grid details if available
-        grid_details = power_data.get('pgridDetailData', {})
+        grid_details = power_data.get('pgridDetail', {})
         if grid_details:
             result["grid_details"] = {
                 "l1_w": grid_details.get('pmeterL1', 0),
@@ -570,7 +570,7 @@ class AlphaESSClient(AlphaESSAPI):
             }
 
         # Add EV details if available
-        ev_details = power_data.get('pevDetailData', {})
+        ev_details = power_data.get('pevDetail', {})
         if ev_details:
             result["ev_details"] = {
                 "ev1_w": ev_details.get('ev1Power', 0),
@@ -737,11 +737,11 @@ class AlphaESSClient(AlphaESSAPI):
             result["records"].append({
                 "upload_time": record.get('uploadTime', 'N/A'),
                 "pv_power_w": record.get('ppv', 0),
-                "battery_power_w": record.get('cobat', 0),
+                "battery_soc_pct": record.get('cbat', 0),
                 "load_w": record.get('load', 0),
                 "grid_charge_w": record.get('gridCharge', 0),
                 "feed_in_w": record.get('feedIn', 0),
-                "charging_pile_w": record.get('pChargingPile', 0),
+                "charging_pile_w": record.get('pchargingPile', 0),
             })
 
         return result
