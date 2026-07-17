@@ -99,8 +99,8 @@ class SynologySampler:
         """Check API response and re-login if session expired, then retry."""
         if not response.get("success"):
             error_code = response.get("error", {}).get("code")
-            # Error codes 105/106/107 = session expired/invalid SID
-            if error_code in (105, 106, 107):
+            # Error codes 105/106/107 = session expired/invalid SID; 119 = SID not found (also invalid session)
+            if error_code in (105, 106, 107, 119):
                 self._login()
                 return None  # Signal caller to retry
             raise RuntimeError(f"Synology API error{' (' + context + ')' if context else ''}: {response.get('error', {})}")
