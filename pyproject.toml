@@ -30,6 +30,9 @@ dependencies = [
     "bambu-lab-cloud-api>=1.0.5",
 ]
 
+[project.optional-dependencies]
+test = ["pytest", "pytest-asyncio"]
+
 [project.urls]
 "Homepage" = "https://github.com/RNLgit/garage-worker"
 "Bug Tracker" = "https://github.com/RNLgit/garage-worker/issues"

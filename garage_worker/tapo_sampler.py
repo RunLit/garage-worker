@@ -148,10 +148,32 @@ class TapoSampler:
             errors["device_info"] = str(exc)
             out["device_info"] = {}
 
+        # Extract status fields from device_info
+        device_info_dict = out.get("device_info", {}) or {}
+        out["device_on"] = device_info_dict.get("device_on")
+        out["overheated"] = bool(device_info_dict.get("overheated", False))
+        out["power_protection_status"] = device_info_dict.get("power_protection_status", "")
+        out["signal_level"] = device_info_dict.get("signal_level")
+        out["on_time"] = device_info_dict.get("on_time")
+        out["nickname"] = device_info_dict.get("nickname", "")
+
         if errors:
             out["errors"] = errors
 
         return out
+
+    # --- control methods ---
+    async def turn_on(self):
+        """Turn the plug's relay on."""
+        if not self._connected:
+            await self.connect()
+        await self._device.on()
+
+    async def turn_off(self):
+        """Turn the plug's relay off."""
+        if not self._connected:
+            await self.connect()
+        await self._device.off()
 
     # --- sync wrapper (convenience) ---
     def get_one_sample_sync(self, pause_after_on: float = 0.5) -> Dict:
@@ -171,6 +193,42 @@ class TapoSampler:
             await self.connect()
             try:
                 return await self.get_one_sample(pause_after_on=pause_after_on)
+            finally:
+                await self.close()
+
+        return asyncio.run(_inner())
+
+    def turn_on_sync(self):
+        """Synchronous convenience wrapper for turn_on()."""
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+        if loop and loop.is_running():
+            raise RuntimeError("An event loop is already running. Call turn_on() (async) instead.")
+
+        async def _inner():
+            await self.connect()
+            try:
+                await self.turn_on()
+            finally:
+                await self.close()
+
+        return asyncio.run(_inner())
+
+    def turn_off_sync(self):
+        """Synchronous convenience wrapper for turn_off()."""
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+        if loop and loop.is_running():
+            raise RuntimeError("An event loop is already running. Call turn_off() (async) instead.")
+
+        async def _inner():
+            await self.connect()
+            try:
+                await self.turn_off()
             finally:
                 await self.close()
 
