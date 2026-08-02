@@ -66,19 +66,10 @@ class TapoSampler:
         self._connected = True
 
     async def close(self):
-        if self._client:
-            try:
-                await self._client.close()
-            except Exception:
-                pass
-            finally:
-                self._client = None
-                self._device = None
-                self._connected = False
-        else:
-            self._device = None
-            self._connected = False
-            return
+        # tapo.ApiClient has no explicit teardown/close method; nothing to await.
+        self._client = None
+        self._device = None
+        self._connected = False
 
     # --- main async collector ---
     async def get_one_sample(self, pause_after_on: float = 0.5) -> Dict:
@@ -117,7 +108,10 @@ class TapoSampler:
             cur = await self._device.get_current_power()
             curd = _obj_to_dict(cur)
             # common keys: current_power / power / value
-            power = curd.get("current_power") or curd.get("power") or curd.get("value")
+            power = next(
+                (curd[k] for k in ("current_power", "power", "value") if curd.get(k) is not None),
+                None,
+            )
             out["power_w"] = float(power) if power is not None else None
             out["current_power_raw"] = curd
         except Exception as exc:
@@ -151,7 +145,7 @@ class TapoSampler:
         # Extract status fields from device_info
         device_info_dict = out.get("device_info", {}) or {}
         out["device_on"] = device_info_dict.get("device_on")
-        out["overheated"] = bool(device_info_dict.get("overheated", False))
+        out.update(self._extract_overheat_fields(device_info_dict))
         out["power_protection_status"] = device_info_dict.get("power_protection_status", "")
         out["signal_level"] = device_info_dict.get("signal_level")
         out["on_time"] = device_info_dict.get("on_time")
@@ -162,18 +156,41 @@ class TapoSampler:
 
         return out
 
+    @staticmethod
+    def _extract_overheat_fields(device_info_dict: Dict) -> Dict[str, Any]:
+        """
+        Extract thermal state from device_info. The real P110 API has no
+        `overheated` boolean key -- it has `overheat_status`, an enum-like
+        value with states "normal" / "cool_down" / "overheated"
+        (tapo's DeviceInfoPlugEnergyMonitoringResult).
+        """
+        overheat = device_info_dict.get("overheat_status")
+        overheat = getattr(overheat, "value", overheat)  # unwrap enum to str if needed
+        return {
+            "overheat_status": overheat or "",
+            "overheated": overheat == "overheated",
+        }
+
     # --- control methods ---
-    async def turn_on(self):
-        """Turn the plug's relay on."""
+    async def turn_on(self) -> Optional[bool]:
+        """Turn the plug's relay on. Returns the resulting device_on state."""
         if not self._connected:
             await self.connect()
         await self._device.on()
+        return await self._get_device_on_state()
 
-    async def turn_off(self):
-        """Turn the plug's relay off."""
+    async def turn_off(self) -> Optional[bool]:
+        """Turn the plug's relay off. Returns the resulting device_on state."""
         if not self._connected:
             await self.connect()
         await self._device.off()
+        return await self._get_device_on_state()
+
+    async def _get_device_on_state(self) -> Optional[bool]:
+        """Fetch fresh device info and return its device_on boolean."""
+        info = await self._device.get_device_info()
+        info_dict = _obj_to_dict(info)
+        return info_dict.get("device_on")
 
     # --- sync wrapper (convenience) ---
     def get_one_sample_sync(self, pause_after_on: float = 0.5) -> Dict:
@@ -210,7 +227,7 @@ class TapoSampler:
         async def _inner():
             await self.connect()
             try:
-                await self.turn_on()
+                return await self.turn_on()
             finally:
                 await self.close()
 
@@ -228,7 +245,7 @@ class TapoSampler:
         async def _inner():
             await self.connect()
             try:
-                await self.turn_off()
+                return await self.turn_off()
             finally:
                 await self.close()
 

@@ -78,6 +78,7 @@ class KasaStripSampler:
         return {
             "timestamp": _now_iso(self.tz_name),
             "device_ip": self.ip,
+            "alias": getattr(self._device, "alias", None),
             "rssi": getattr(self._device, "rssi", None),
             "sysinfo": {
                 "model": getattr(self._device, "model", None),
@@ -104,17 +105,21 @@ class KasaStripSampler:
 
         return asyncio.run(_inner())
 
-    async def turn_on(self, outlet_index: int):
-        """Turn on the outlet at the given 0-based index."""
+    async def turn_on(self, outlet_index: int) -> bool:
+        """Turn on the outlet at the given 0-based index. Returns the resulting on/off state."""
         if not self._connected:
             await self.connect()
         await self._device.children[outlet_index].turn_on()
+        await self._device.update()
+        return bool(self._device.children[outlet_index].is_on)
 
-    async def turn_off(self, outlet_index: int):
-        """Turn off the outlet at the given 0-based index."""
+    async def turn_off(self, outlet_index: int) -> bool:
+        """Turn off the outlet at the given 0-based index. Returns the resulting on/off state."""
         if not self._connected:
             await self.connect()
         await self._device.children[outlet_index].turn_off()
+        await self._device.update()
+        return bool(self._device.children[outlet_index].is_on)
 
     def turn_on_sync(self, outlet_index: int):
         try:
@@ -127,7 +132,7 @@ class KasaStripSampler:
         async def _inner():
             await self.connect()
             try:
-                await self.turn_on(outlet_index)
+                return await self.turn_on(outlet_index)
             finally:
                 await self.close()
 
@@ -144,7 +149,7 @@ class KasaStripSampler:
         async def _inner():
             await self.connect()
             try:
-                await self.turn_off(outlet_index)
+                return await self.turn_off(outlet_index)
             finally:
                 await self.close()
 

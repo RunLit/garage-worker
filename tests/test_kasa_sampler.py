@@ -20,6 +20,7 @@ def make_sampler_with_mock_device():
     device = MagicMock()
     device.update = AsyncMock()
     device.disconnect = AsyncMock()
+    device.alias = "Garage Power Strip"
     device.rssi = -50
     device.model = "KP303(AU)"
     device.mac = "AA:BB:CC:DD:EE:FF"
@@ -40,6 +41,7 @@ async def test_get_one_sample_lists_all_outlets():
     sample = await sampler.get_one_sample()
 
     assert sample["device_ip"] == "192.168.0.88"
+    assert sample["alias"] == "Garage Power Strip"
     assert sample["rssi"] == -50
     assert sample["sysinfo"]["model"] == "KP303(AU)"
     assert len(sample["outlets"]) == 3
@@ -52,16 +54,22 @@ async def test_get_one_sample_lists_all_outlets():
 @pytest.mark.asyncio
 async def test_turn_on_calls_correct_child_outlet():
     sampler, device = make_sampler_with_mock_device()
-    await sampler.turn_on(1)
+    device.children[1].is_on = True
+    result = await sampler.turn_on(1)
     device.children[1].turn_on.assert_awaited_once()
     device.children[0].turn_on.assert_not_called()
+    device.update.assert_awaited()
+    assert result is True
 
 
 @pytest.mark.asyncio
 async def test_turn_off_calls_correct_child_outlet():
     sampler, device = make_sampler_with_mock_device()
-    await sampler.turn_off(2)
+    device.children[2].is_on = False
+    result = await sampler.turn_off(2)
     device.children[2].turn_off.assert_awaited_once()
+    device.update.assert_awaited()
+    assert result is False
 
 
 @pytest.mark.asyncio
