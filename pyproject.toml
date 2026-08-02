@@ -26,6 +26,7 @@ classifiers = [
 
 dependencies = [
     "tapo",
+    "python-kasa",
     "requests",
     "bambu-lab-cloud-api>=1.0.5",
 ]
