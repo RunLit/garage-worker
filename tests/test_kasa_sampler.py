@@ -19,6 +19,7 @@ def make_sampler_with_mock_device():
     sampler = KasaStripSampler("192.168.0.88")
     device = MagicMock()
     device.update = AsyncMock()
+    device.disconnect = AsyncMock()
     device.rssi = -50
     device.model = "KP303(AU)"
     device.mac = "AA:BB:CC:DD:EE:FF"
@@ -61,3 +62,12 @@ async def test_turn_off_calls_correct_child_outlet():
     sampler, device = make_sampler_with_mock_device()
     await sampler.turn_off(2)
     device.children[2].turn_off.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_close_calls_disconnect():
+    sampler, device = make_sampler_with_mock_device()
+    await sampler.close()
+    device.disconnect.assert_awaited_once()
+    assert sampler._device is None
+    assert sampler._connected is False

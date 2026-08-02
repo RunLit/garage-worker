@@ -45,8 +45,17 @@ class KasaStripSampler:
         self._connected = True
 
     async def close(self):
-        self._device = None
-        self._connected = False
+        if self._device:
+            try:
+                await self._device.disconnect()
+            except Exception:
+                pass
+            finally:
+                self._device = None
+                self._connected = False
+        else:
+            self._device = None
+            self._connected = False
 
     async def get_one_sample(self) -> Dict[str, Any]:
         """
