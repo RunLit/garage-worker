@@ -7,7 +7,7 @@ name = "garage-worker"
 version = "0.1.0"
 description = "IoT devices worker to poll devices info and logging to remote"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
     {name = "RNL"},
@@ -17,19 +17,31 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
 
+# python-kasa is deliberately NOT a core dependency: it requires Python >= 3.11,
+# which would make the whole package uninstallable on older collector hosts
+# (the Raspberry Pi runner is Debian 11 / Python 3.9). Everything except
+# KasaStripSampler works there, so the KP303 support is an opt-in extra:
+#
+#     pip install garage-worker[kasa]     # hosts that can run Python >= 3.11
+#     pip install garage-worker           # everything else
+#
+# Consumers must import KasaStripSampler lazily and degrade gracefully when it
+# is absent — see RAE's infrastructure/iot_drivers.py.
 dependencies = [
     "tapo",
-    "python-kasa>=0.10",
     "requests",
     "bambu-lab-cloud-api>=1.0.5",
 ]
 
 [project.optional-dependencies]
+kasa = ["python-kasa>=0.10"]
 test = ["pytest", "pytest-asyncio"]
 
 [project.urls]
