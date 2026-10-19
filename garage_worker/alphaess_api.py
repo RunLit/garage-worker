@@ -15,6 +15,9 @@ class AlphaESSAPI:
     """API for interacting with AlphaESS OpenAPI"""
 
     BASE_URL = "https://openapi.alphaess.com/api"
+    # (connect, read) seconds. requests has no default timeout, so a stalled
+    # connection would block the caller forever instead of raising.
+    REQUEST_TIMEOUT = (5, 15)
 
     def __init__(self, app_id: Optional[str] = None, app_secret: Optional[str] = None):
         """
@@ -91,7 +94,7 @@ class AlphaESSAPI:
         params = {"sysSn": system_sn}
 
         try:
-            response = requests.get(url, headers=headers, params=params)
+            response = requests.get(url, headers=headers, params=params, timeout=self.REQUEST_TIMEOUT)
             response.raise_for_status()
 
             data = response.json()
@@ -123,7 +126,7 @@ class AlphaESSAPI:
         params = {"sysSn": system_sn}
 
         try:
-            response = requests.get(url, headers=headers, params=params)
+            response = requests.get(url, headers=headers, params=params, timeout=self.REQUEST_TIMEOUT)
             response.raise_for_status()
 
             data = response.json()
@@ -149,7 +152,7 @@ class AlphaESSAPI:
         headers = self._get_headers()
 
         try:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=self.REQUEST_TIMEOUT)
             response.raise_for_status()
 
             data = response.json()
@@ -184,7 +187,7 @@ class AlphaESSAPI:
         }
 
         try:
-            response = requests.get(url, headers=headers, params=params)
+            response = requests.get(url, headers=headers, params=params, timeout=self.REQUEST_TIMEOUT)
             response.raise_for_status()
 
             data = response.json()
@@ -219,7 +222,7 @@ class AlphaESSAPI:
         }
 
         try:
-            response = requests.get(url, headers=headers, params=params)
+            response = requests.get(url, headers=headers, params=params, timeout=self.REQUEST_TIMEOUT)
             response.raise_for_status()
 
             data = response.json()
@@ -250,7 +253,7 @@ class AlphaESSAPI:
         params = {"sysSn": system_sn}
 
         try:
-            response = requests.get(url, headers=headers, params=params)
+            response = requests.get(url, headers=headers, params=params, timeout=self.REQUEST_TIMEOUT)
             response.raise_for_status()
 
             data = response.json()
